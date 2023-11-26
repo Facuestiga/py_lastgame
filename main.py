@@ -1,6 +1,7 @@
 import pygame
 from pygame.locals import *
 import sys
+from gui_form_menuA import FormMenuA
 from constantes import *
 from gui_form import Form
 from stage import Stage
@@ -11,7 +12,7 @@ pygame.init()
 clock = pygame.time.Clock()
 
 #player = Player(x=0,y=400,speed_walk=6,speed_run=12,gravity=14,jump_power=30,frame_rate_ms=100,move_rate_ms=50,jump_height=140,p_scale=0.2,interval_time_jump=300)
-
+form_menu_A = FormMenuA(name="form_menu_A",master_surface = screen,x=300,y=200,w=500,h=400,color_background=(255,255,0),color_border=(255,0,255),active=True)
 form_game_L1 = Stage(name="form_game_L1",master_surface = screen,x=0,y=0,w=ANCHO_VENTANA,h=ALTO_VENTANA,color_background=(0,255,255),color_border=(255,0,255),active=False)
 while True:
     lista_eventos = pygame.event.get()
