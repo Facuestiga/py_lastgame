@@ -1,9 +1,11 @@
 import pygame
 from auxiliar import Auxiliar
 from constantes import *
+from bala import Bala
 
-class Player:
+class Player(pygame.sprite.Sprite):
     def __init__(self,x,y,speed_walk,speed_run,gravity,jump_power,frame_rate_ms,move_rate_ms,jump_height,p_scale=1,interval_time_jump=100) -> None:
+        super().__init__()
         self.stay_r = Auxiliar.getSurfaceFromSeparateFiles("images/caracters/players/cowgirl/Idle ({0}).png",1,10,flip=False,scale=p_scale)
         self.stay_l = Auxiliar.getSurfaceFromSeparateFiles("images/caracters/players/cowgirl/Idle ({0}).png",1,10,flip=True,scale=p_scale)
         self.jump_r = Auxiliar.getSurfaceFromSeparateFiles("images/caracters/players/cowgirl/Jump ({0}).png",1,10,flip=False,scale=p_scale)
@@ -25,11 +27,11 @@ class Player:
         self.gravity = gravity
         self.jump_power = jump_power
         self.animation = self.stay_r
-        self.direction = DIRECTION_R
         self.image = self.animation[self.frame]
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+        self.direction = DIRECTION_R
         self.collition_rect = pygame.Rect(x+self.rect.width/3,y,self.rect.width/3,self.rect.height)
         self.ground_collition_rect = pygame.Rect(self.collition_rect)
         self.ground_collition_rect.height = GROUND_COLLIDE_H
@@ -50,6 +52,24 @@ class Player:
         self.tiempo_transcurrido = 0
         self.tiempo_last_jump = 0 # en base al tiempo transcurrido general
         self.interval_time_jump = interval_time_jump
+        self.is_looking_right = True
+        
+        self.lista_balas = []
+        
+    
+    def __set_x_animations_preset(self, move_x, animation_list: list[pygame.surface.Surface], look_r: bool):
+        self.move_x = move_x
+        self.animation = animation_list
+        self.is_looking_right = look_r
+        
+    
+    def __set_y_animations_preset(self):
+        self.move_y = -self.jump_power
+        self.move_x = self.speed_run if self.is_looking_right else -self.speed_run
+        self.animation = self.jump_r if self.is_looking_right else self.jump_l
+        self.initial_frame = 0
+        self.is_jumping = True
+    
     
     def walk(self,direction):
         if(self.is_jump == False and self.is_fall == False):
@@ -57,11 +77,15 @@ class Player:
                 self.frame = 0
                 self.direction = direction
                 if(direction == DIRECTION_R):
+                    
                     self.move_x = self.speed_walk
                     self.animation = self.walk_r
+                    self.__set_x_animations_preset(self.speed_walk, self.walk_r, look_r=True)
                 else:
+                    
                     self.move_x = -self.speed_walk
                     self.animation = self.walk_l
+                    self.__set_x_animations_preset(-self.speed_walk, self.walk_l, look_r=False)
                     
     def shoot(self,on_off = True):
         self.is_shoot = on_off
@@ -73,7 +97,37 @@ class Player:
                 if(self.direction == DIRECTION_R):
                     self.animation = self.shoot_r
                 else:
-                    self.animation = self.shoot_l 
+                    self.animation = self.shoot_l
+    
+    
+    def lanzar_proyectil(self):
+        x = None
+        margen = 47
+        
+        y = self.rect.centery + 10
+        if self.direction == DIRECTION_R or self.animation == self.stay_r:
+            x = self.rect.right - margen
+        elif self.direction == DIRECTION_L:
+            x = self.rect.left - 100 + margen
+            
+        if x is not None:
+            self.lista_balas.append(Bala(x, y, self.direction, speed_shoot=10))
+            
+    def actualizar_proyectil(self, pantalla):
+        i = 0
+        while i < len(self.lista_balas):
+            p = self.lista_balas[i]
+            pantalla.blit(p.superficie, p.rectangulo)
+            p.update()
+            if p.rectangulo.centerx < 0 or p.rectangulo.centerx > pantalla.get_width():
+                self.lista_balas.pop(i)
+                i -= 1
+            i += 1
+                
+    # def disparo(self, shooting = True):
+    #     flag_disparo = True
+    #     self.is_shoot = shooting
+    #     if(shooting == True and flag_disparo) 
                     
     def receive_shoot(self):
         self.lives -= 1
@@ -170,7 +224,9 @@ class Player:
             else: 
                 self.frame = 0
  
-    def update(self,delta_ms,plataform_list):
+    def update(self,delta_ms,plataform_list, keys, screen):
+        self.events(delta_ms, keys)
+        self.actualizar_proyectil(screen)
         self.do_movement(delta_ms,plataform_list)
         self.do_animation(delta_ms)
         
@@ -187,6 +243,7 @@ class Player:
 
     def events(self,delta_ms,keys):
         self.tiempo_transcurrido += delta_ms
+        tiempo_ultimo_disparo = 0
 
 
         if(keys[pygame.K_LEFT] and not keys[pygame.K_RIGHT]):
@@ -211,8 +268,11 @@ class Player:
         if(not keys[pygame.K_a]):
             self.knife(False)  
 
-        if(keys[pygame.K_s] and not keys[pygame.K_a]):
-            self.shoot()   
-        
+        if(keys[pygame.K_s] and not keys[pygame.K_a]) and self.is_shoot:
+            self.tiempo_transcurrido = pygame.time.get_ticks()
+            if self.tiempo_transcurrido - tiempo_ultimo_disparo >= 1000: 
+                #self.shoot()   
+                self.lanzar_proyectil()
+                tiempo_ultimo_disparo = self.tiempo_transcurrido
         if(keys[pygame.K_a] and not keys[pygame.K_s]):
             self.knife()

@@ -5,10 +5,10 @@ from auxiliar import Auxiliar
 class Enemy():
     
     def __init__(self,x,y,speed_walk,speed_run,gravity,jump_power,frame_rate_ms,move_rate_ms,jump_height,p_scale=1,interval_time_jump=100) -> None:
-        self.walk_r = Auxiliar.getSurfaceFromSeparateFiles("images/caracters/enemies/ork_sword/WALK/WALK_00{0}.png",0,7,scale=p_scale)
-        self.walk_l = Auxiliar.getSurfaceFromSeparateFiles("images/caracters/enemies/ork_sword/WALK/WALK_00{0}.png",0,7,flip=True,scale=p_scale)
-        self.stay_r = Auxiliar.getSurfaceFromSeparateFiles("images/caracters/enemies/ork_sword/IDLE/IDLE_00{0}.png",0,7,scale=p_scale)
-        self.stay_l = Auxiliar.getSurfaceFromSeparateFiles("images/caracters/enemies/ork_sword/IDLE/IDLE_00{0}.png",0,7,flip=True,scale=p_scale)
+        self.walk_r = Auxiliar.getSurfaceFromSeparateFiles("images/caracters/enemies/WALK_00{0}.png",0,7,scale=p_scale)
+        self.walk_l = Auxiliar.getSurfaceFromSeparateFiles("images/caracters/enemies/WALK_00{0}.png",0,7,flip=True,scale=p_scale)
+        self.stay_r = Auxiliar.getSurfaceFromSeparateFiles("images/caracters/enemies/IDLE_00{0}.png",0,7,scale=p_scale)
+        self.stay_l = Auxiliar.getSurfaceFromSeparateFiles("images/caracters/enemies/IDLE_00{0}.png",0,7,flip=True,scale=p_scale)
 
         self.contador = 0
         self.frame = 0
