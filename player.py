@@ -2,6 +2,7 @@ import pygame
 from auxiliar import Auxiliar
 from constantes import *
 from bala import Bala
+from bullet import Bullet
 
 class Player(pygame.sprite.Sprite):
     def __init__(self,x,y,speed_walk,speed_run,gravity,jump_power,frame_rate_ms,move_rate_ms,jump_height,p_scale=1,interval_time_jump=100) -> None:
@@ -54,7 +55,7 @@ class Player(pygame.sprite.Sprite):
         self.interval_time_jump = interval_time_jump
         self.is_looking_right = True
         
-        self.lista_balas = []
+        self.lista_balas = pygame.sprite.Group()
         
     
     def __set_x_animations_preset(self, move_x, animation_list: list[pygame.surface.Surface], look_r: bool):
@@ -88,18 +89,27 @@ class Player(pygame.sprite.Sprite):
                     self.__set_x_animations_preset(-self.speed_walk, self.walk_l, look_r=False)
                     
     def shoot(self,on_off = True):
-        self.is_shoot = on_off
-        if(on_off == True and self.is_jump == False and self.is_fall == False):
-
-            if(self.animation != self.shoot_r and self.animation != self.shoot_l):
-                self.frame = 0
-                self.is_shoot = True
-                if(self.direction == DIRECTION_R):
-                    self.animation = self.shoot_r
-                else:
-                    self.animation = self.shoot_l
+        if on_off:
+            print("Método shoot llamado.")
+            if self.is_shoot and not self.is_jump and not self.is_fall:
+                if self.animation != self.shoot_r and self.animation != self.shoot_l:
+                    self.frame = 0
+                    self.is_shoot = True
+                    if self.direction == DIRECTION_R:
+                        self.animation = self.shoot_r
+                        self.create_bullet(DIRECTION_R)
+                    else:
+                        self.animation = self.shoot_l
+                        self.create_bullet(DIRECTION_L)
     
-    
+    def create_bullet(self, direction):
+        bala = Bullet(self, self.rect.centerx, self.rect.centery,
+                        self.rect.centerx, self.rect.centery,  # x_end, y_end
+                        10,
+                        "images/bullet/bala.jpg",
+                        10, 10,
+                        )
+        self.lista_balas.add(bala)
     def lanzar_proyectil(self):
         x = None
         margen = 47
@@ -269,10 +279,10 @@ class Player(pygame.sprite.Sprite):
             self.knife(False)  
 
         if(keys[pygame.K_s] and not keys[pygame.K_a]) and self.is_shoot:
-            self.tiempo_transcurrido = pygame.time.get_ticks()
-            if self.tiempo_transcurrido - tiempo_ultimo_disparo >= 1000: 
-                #self.shoot()   
-                self.lanzar_proyectil()
-                tiempo_ultimo_disparo = self.tiempo_transcurrido
+            # self.tiempo_transcurrido = pygame.time.get_ticks()
+            # if self.tiempo_transcurrido - tiempo_ultimo_disparo >= 1000: 
+            self.shoot()   
+                # self.lanzar_proyectil()
+                # tiempo_ultimo_disparo = self.tiempo_transcurrido
         if(keys[pygame.K_a] and not keys[pygame.K_s]):
             self.knife()
