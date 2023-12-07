@@ -2,7 +2,9 @@ import pygame
 from auxiliar import Auxiliar
 from constantes import *
 from bala import Bala
+from bullet2 import Projectile
 from bullet import Bullet
+from item import Item
 
 class Player(pygame.sprite.Sprite):
     def __init__(self,x,y,speed_walk,speed_run,gravity,jump_power,frame_rate_ms,move_rate_ms,jump_height,p_scale=1,interval_time_jump=100) -> None:
@@ -27,11 +29,13 @@ class Player(pygame.sprite.Sprite):
         self.speed_run =  speed_run
         self.gravity = gravity
         self.jump_power = jump_power
+        ##############################
         self.animation = self.stay_r
         self.image = self.animation[self.frame]
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+        self.rect.centery = y
         self.direction = DIRECTION_R
         self.collition_rect = pygame.Rect(x+self.rect.width/3,y,self.rect.width/3,self.rect.height)
         self.ground_collition_rect = pygame.Rect(self.collition_rect)
@@ -42,6 +46,7 @@ class Player(pygame.sprite.Sprite):
         self.is_fall = False
         self.is_shoot = False
         self.is_knife = False
+        self.is_stand = True
         
         self.tiempo_transcurrido_animation = 0
         self.frame_rate_ms = frame_rate_ms 
@@ -55,7 +60,10 @@ class Player(pygame.sprite.Sprite):
         self.interval_time_jump = interval_time_jump
         self.is_looking_right = True
         
+        self.is_ready_to_attack = True
+        self.list_balas = []
         self.lista_balas = pygame.sprite.Group()
+        self.coins_group = pygame.sprite.Group()
         
     
     def __set_x_animations_preset(self, move_x, animation_list: list[pygame.surface.Surface], look_r: bool):
@@ -70,6 +78,14 @@ class Player(pygame.sprite.Sprite):
         self.animation = self.jump_r if self.is_looking_right else self.jump_l
         self.initial_frame = 0
         self.is_jumping = True
+        
+    def __set_borders_limits(self):
+        pixels_move = 0
+        if self.move_x > 0:
+            pixels_move = self.move_x if self.rect.x < ANCHO_VENTANA - self.image.get_width() else 0
+        elif self.move_x < 0:
+            pixels_move = self.move_x if self.rect.x > 0 else 0
+        return pixels_move
     
     
     def walk(self,direction):
@@ -78,79 +94,59 @@ class Player(pygame.sprite.Sprite):
                 self.frame = 0
                 self.direction = direction
                 if(direction == DIRECTION_R):
-                    
+                    self.__set_x_animations_preset(self.speed_walk, self.walk_r, look_r=True)
                     self.move_x = self.speed_walk
                     self.animation = self.walk_r
-                    self.__set_x_animations_preset(self.speed_walk, self.walk_r, look_r=True)
-                else:
                     
+                else:
+                    self.__set_x_animations_preset(-self.speed_walk, self.walk_l, look_r=False)
                     self.move_x = -self.speed_walk
                     self.animation = self.walk_l
-                    self.__set_x_animations_preset(-self.speed_walk, self.walk_l, look_r=False)
-                    
-    def shoot(self,on_off = True):
-        if on_off:
-            print("Método shoot llamado.")
-            if self.is_shoot and not self.is_jump and not self.is_fall:
-                if self.animation != self.shoot_r and self.animation != self.shoot_l:
-                    self.frame = 0
-                    self.is_shoot = True
-                    if self.direction == DIRECTION_R:
-                        self.animation = self.shoot_r
-                        self.create_bullet(DIRECTION_R)
-                    else:
-                        self.animation = self.shoot_l
-                        self.create_bullet(DIRECTION_L)
+      
     
-    def create_bullet(self, direction):
-        bala = Bullet(self, self.rect.centerx, self.rect.centery,
-                        self.rect.centerx, self.rect.centery,  # x_end, y_end
-                        10,
-                        "images/bullet/bala.jpg",
-                        10, 10,
-                        )
-        self.lista_balas.add(bala)
-    def lanzar_proyectil(self):
-        x = None
-        margen = 47
-        
-        y = self.rect.centery + 10
-        if self.direction == DIRECTION_R or self.animation == self.stay_r:
-            x = self.rect.right - margen
-        elif self.direction == DIRECTION_L:
-            x = self.rect.left - 100 + margen
-            
-        if x is not None:
-            self.lista_balas.append(Bala(x, y, self.direction, speed_shoot=10))
-            
-    def actualizar_proyectil(self, pantalla):
-        i = 0
-        while i < len(self.lista_balas):
-            p = self.lista_balas[i]
-            pantalla.blit(p.superficie, p.rectangulo)
-            p.update()
-            if p.rectangulo.centerx < 0 or p.rectangulo.centerx > pantalla.get_width():
-                self.lista_balas.pop(i)
-                i -= 1
-            i += 1
-                
-    # def disparo(self, shooting = True):
-    #     flag_disparo = True
-    #     self.is_shoot = shooting
-    #     if(shooting == True and flag_disparo) 
+                      
                     
+    def attack(self):
+        print("Entre al metodo attack()")
+        self.lista_balas.add(self.create_bullet())
+    
+    def create_bala(self, direccion):
+        x = self.rect.x  
+        y = self.rect.centery
+        bala = Bala(x, y, direccion, 10)
+        self.list_balas.append(bala)
+
     def receive_shoot(self):
         self.lives -= 1
 
     def knife(self,on_off = True):
+        
         self.is_knife = on_off
         if(on_off == True and self.is_jump == False and self.is_fall == False):
             if(self.animation != self.knife_r and self.animation != self.knife_l):
                 self.frame = 0
                 if(self.direction == DIRECTION_R):
                     self.animation = self.knife_r
+                    print("entre al metodo knife")
                 else:
-                    self.animation = self.knife_l      
+                    self.animation = self.knife_l
+                    
+    def shoot(self,on_off = True):
+        
+        self.is_shoot = on_off
+        if on_off == True and  self.is_jump == False and self.is_fall == False:
+            
+            if self.animation != self.shoot_r and self.animation != self.shoot_l:
+                self.frame = 0
+                #self.is_shoot = True
+                if self.direction == DIRECTION_R:
+                    print("Método shoot llamado.")
+                    self.animation = self.shoot_r
+                    self.create_bala(DIRECTION_R)
+                else:
+                    self.animation = self.shoot_l
+                    self.create_bala(DIRECTION_L)
+      
 
     def jump(self,on_off = True):
         if(on_off and self.is_jump == False and self.is_fall == False):
@@ -196,7 +192,8 @@ class Player(pygame.sprite.Sprite):
         self.tiempo_transcurrido_move += delta_ms
         if(self.tiempo_transcurrido_move >= self.move_rate_ms):
             self.tiempo_transcurrido_move = 0
-
+           
+            #self.rect.x += self.__set_borders_limits()
             if(abs(self.y_start_jump - self.rect.y) > self.jump_height and self.is_jump):
                 self.move_y = 0
           
@@ -222,7 +219,21 @@ class Player(pygame.sprite.Sprite):
                 if(self.ground_collition_rect.colliderect(plataforma.ground_collition_rect)):
                     retorno = True
                     break       
-        return retorno                 
+        return retorno  
+    
+    def create_coin(self, x, y):
+        nueva_moneda = Item(x, y)
+        self.coins_group.add(nueva_moneda)
+        
+
+    def update_coins(self, delta_ms):
+        # Verificar colisión con monedas
+        coins_collision = pygame.sprite.spritecollide(self, self.coins_group, True)
+
+        # Actualizar puntaje si hay colisión con monedas
+        for coin in coins_collision:
+            self.score += 5
+            print("¡Colisión con moneda! Puntaje actual:", self.score)               
 
     def do_animation(self,delta_ms):
         self.tiempo_transcurrido_animation += delta_ms
@@ -234,9 +245,9 @@ class Player(pygame.sprite.Sprite):
             else: 
                 self.frame = 0
  
-    def update(self,delta_ms,plataform_list, keys, screen):
+    def update(self,delta_ms,plataform_list, keys):
         self.events(delta_ms, keys)
-        self.actualizar_proyectil(screen)
+        #self.actualizar_proyectil(screen)
         self.do_movement(delta_ms,plataform_list)
         self.do_animation(delta_ms)
         
@@ -251,11 +262,9 @@ class Player(pygame.sprite.Sprite):
         screen.blit(self.image,self.rect)
         
 
-    def events(self,delta_ms,keys):
+    def events(self,delta_ms,keys,):
         self.tiempo_transcurrido += delta_ms
-        tiempo_ultimo_disparo = 0
-
-
+        
         if(keys[pygame.K_LEFT] and not keys[pygame.K_RIGHT]):
             self.walk(DIRECTION_L)
 
@@ -278,10 +287,22 @@ class Player(pygame.sprite.Sprite):
         if(not keys[pygame.K_a]):
             self.knife(False)  
 
-        if(keys[pygame.K_s] and not keys[pygame.K_a]) and self.is_shoot:
+        if(keys[pygame.K_s] and not keys[pygame.K_a]) and not self.is_shoot:
             # self.tiempo_transcurrido = pygame.time.get_ticks()
             # if self.tiempo_transcurrido - tiempo_ultimo_disparo >= 1000: 
-            self.shoot()   
+            
+            # self.attack()
+            # self.is_ready_to_attack = False
+           
+            if self.direction == -1:
+                facing = -1
+            else:
+                facing = 1
+            
+            if len(self.list_balas) < 5:
+                self.list_balas.append(Projectile(round(self.rect.x + self.rect.w))) 
+            self.shoot()
+         
                 # self.lanzar_proyectil()
                 # tiempo_ultimo_disparo = self.tiempo_transcurrido
         if(keys[pygame.K_a] and not keys[pygame.K_s]):

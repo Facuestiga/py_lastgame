@@ -2,9 +2,10 @@ from player import *
 from constantes import *
 from auxiliar import Auxiliar
 
-class Enemy():
+class Enemy(pygame.sprite.Sprite):
     
     def __init__(self,x,y,speed_walk,speed_run,gravity,jump_power,frame_rate_ms,move_rate_ms,jump_height,p_scale=1,interval_time_jump=100) -> None:
+        super().__init__()
         self.walk_r = Auxiliar.getSurfaceFromSeparateFiles("images/caracters/enemies/WALK_00{0}.png",0,7,scale=p_scale)
         self.walk_l = Auxiliar.getSurfaceFromSeparateFiles("images/caracters/enemies/WALK_00{0}.png",0,7,flip=True,scale=p_scale)
         self.stay_r = Auxiliar.getSurfaceFromSeparateFiles("images/caracters/enemies/IDLE_00{0}.png",0,7,scale=p_scale)
@@ -47,6 +48,27 @@ class Enemy():
         self.tiempo_last_jump = 0 # en base al tiempo transcurrido general
         self.interval_time_jump = interval_time_jump
    
+   
+    def set_x_animations_preset(self, move_x, animation_list: list[pygame.surface.Surface], look_r: bool):
+        self.move_x = move_x
+        self.actual_animation = animation_list
+        self.is_looking_right = look_r
+    
+    #   Animaciones eje Y
+    def set_y_animations_preset(self):
+        self.move_x = self.speed_run if self.is_looking_right else -self.speed_run
+        self.initial_frame = 0
+  
+    
+    #   Seteo de limites de pantalla
+    def set_borders_limits(self):
+        pixels_move = 0
+        if self.move_x > 0:
+            pixels_move = self.move_x if self.rect.x < ANCHO_VENTANA - self.image.get_width() else 0
+        elif self.move_x < 0:
+            pixels_move = self.move_x if self.rect.x > 0 else 0
+        return pixels_move
+   
     def change_x(self,delta_x):
         self.rect.x += delta_x
         self.collition_rect.x += delta_x
@@ -61,6 +83,7 @@ class Enemy():
         self.tiempo_transcurrido_move += delta_ms
         if(self.tiempo_transcurrido_move >= self.move_rate_ms):
             self.tiempo_transcurrido_move = 0
+            #self.rect.x += self.set_borders_limits()
 
             if(not self.is_on_plataform(plataform_list)):
                 if(self.move_y == 0):
